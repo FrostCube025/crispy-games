@@ -16,6 +16,11 @@ const overlayBtn = document.getElementById("overlayBtn");
 const canvas = document.getElementById("board");
 const ctx = canvas.getContext("2d");
 
+// Make canvas focusable (helps keyboard input, especially after clicking buttons)
+canvas.tabIndex = 0;
+canvas.style.outline = "none";
+canvas.addEventListener("pointerdown", () => canvas.focus());
+
 const BEST_KEY = "crispy_snake_best_js_v1";
 let best = Number(localStorage.getItem(BEST_KEY) || "0");
 elBest.textContent = String(best);
@@ -150,7 +155,10 @@ function step() {
 
   // Collision: moving into the tail is allowed if we are NOT eating (tail moves away)
   const tail = snake[snake.length - 1];
-  const hitsBody = snake.some((p, i) => p.x === nx && p.y === ny && !( !willEat && p.x === tail.x && p.y === tail.y && i === snake.length - 1));
+  const hitsBody = snake.some(
+    (p, i) => p.x === nx && p.y === ny &&
+      !( !willEat && p.x === tail.x && p.y === tail.y && i === snake.length - 1 )
+  );
   if (hitsBody) {
     dead = true;
     return;
@@ -307,6 +315,8 @@ requestAnimationFrame(loop);
 
 // ------- Controls -------
 function start() {
+  canvas.focus(); // ensure keyboard focus
+
   if (dead) resetGame();
 
   running = true;
@@ -352,13 +362,21 @@ function restart(autostart) {
   if (autostart) start();
 }
 
-// ------- Input -------
+// ------- Input (FIXED) -------
 function setupInput() {
-  window.addEventListener("keydown", (e) => {
-    const key = e.key.toLowerCase();
+  // Capture mode prevents focused buttons/checkbox from consuming arrow keys/space
+  document.addEventListener("keydown", (e) => {
+    const k = e.key;
+    const key = (k.length === 1) ? k.toLowerCase() : k.toLowerCase();
+
+    const isGameKey =
+      key === "arrowup" || key === "arrowdown" || key === "arrowleft" || key === "arrowright" ||
+      key === "w" || key === "a" || key === "s" || key === "d" ||
+      key === " " || e.code === "Space";
+
+    if (isGameKey) e.preventDefault();
 
     if (key === " " || e.code === "Space") {
-      e.preventDefault();
       if (running) togglePause();
       return;
     }
@@ -370,11 +388,9 @@ function setupInput() {
       arrowright: "R", d: "R",
     };
 
-    if (map[key]) {
-      e.preventDefault();
-      queueDirection(map[key]);
-    }
-  });
+    const d = map[key];
+    if (d) queueDirection(d);
+  }, { capture: true });
 }
 
 // ------- Button wiring -------
@@ -383,6 +399,7 @@ overlayBtn.onclick = start;
 btnRestart.onclick = () => restart(false);
 btnPause.onclick = togglePause;
 
-// ------- Initial state -------
+// ------- Initial state (FIXED: call setupInput) -------
+setupInput();
 resetGame();
 setOverlay(true, "Crispy Snake", "Press Start to begin.", "Start", true, start);
