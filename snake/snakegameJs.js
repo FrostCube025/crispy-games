@@ -1,407 +1,347 @@
 (() => {
-  // If the script loads, you'll see this in DevTools Console
-  console.log("✅ Crispy Snake: JS file loaded");
+  const elScore = document.getElementById("score");
+  const elBest  = document.getElementById("best");
+  const elSpeed = document.getElementById("speed");
+  const elStatus = document.getElementById("status");
 
-  window.addEventListener("DOMContentLoaded", () => {
-    // Helper: required elements (if missing, we show a clear error)
-    function must(id) {
-      const el = document.getElementById(id);
-      if (!el) {
-        const msg = `Snake error: missing element id="${id}". Check snake/index.html has this id.`;
-        console.error(msg);
-        alert(msg);
-        throw new Error(msg);
-      }
-      return el;
+  const btnStart = document.getElementById("btnStart");
+  const btnPause = document.getElementById("btnPause");
+  const btnRestart = document.getElementById("btnRestart");
+  const wrapWalls = document.getElementById("wrapWalls");
+
+  const overlay = document.getElementById("overlay");
+  const overlayTitle = document.getElementById("overlayTitle");
+  const overlayText = document.getElementById("overlayText");
+  const overlayBtn = document.getElementById("overlayBtn");
+
+  const canvas = document.getElementById("board");
+  const ctx = canvas.getContext("2d");
+
+  canvas.tabIndex = 0;
+  canvas.style.outline = "none";
+  canvas.addEventListener("pointerdown", () => canvas.focus());
+
+  const BEST_KEY = "crispy_snake_best_js_v1";
+  let best = Number(localStorage.getItem(BEST_KEY) || "0");
+  elBest.textContent = String(best);
+
+  const GRID = 24;
+  const START_LEN = 3;
+  const BASE_TICK_MS = 120;
+
+  let snake = [];
+  let dir = "R";
+  let queuedDir = null;
+  let food = { x: 0, y: 0 };
+  let score = 0;
+  let dead = false;
+
+  let running = false;
+  let paused = false;
+  let lastTick = 0;
+
+  function fitCanvasToCSS() {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(rect.width * dpr);
+    canvas.height = Math.round(rect.width * dpr);
+  }
+  window.addEventListener("resize", () => { fitCanvasToCSS(); render(); });
+  fitCanvasToCSS();
+
+  function setOverlay(show, title, text, btnText, enabled, onClick) {
+    if (show) overlay.classList.remove("hidden");
+    else overlay.classList.add("hidden");
+
+    overlayTitle.textContent = title ?? "Crispy Snake";
+    overlayText.textContent = text ?? "";
+    overlayBtn.textContent = btnText ?? "Start";
+    overlayBtn.disabled = !enabled;
+    if (onClick) overlayBtn.onclick = onClick;
+  }
+
+  function getSpeedMult() {
+    return 1 + Math.min(1.35, score * 0.05);
+  }
+
+  function tickInterval() {
+    return BASE_TICK_MS / getSpeedMult();
+  }
+
+  function updateHUD() {
+    elScore.textContent = String(score);
+    elSpeed.textContent = `${getSpeedMult().toFixed(2)}×`;
+
+    if (score > best) {
+      best = score;
+      localStorage.setItem(BEST_KEY, String(best));
+      elBest.textContent = String(best);
+    }
+  }
+
+  function resetGame() {
+    score = 0;
+    dead = false;
+    dir = "R";
+    queuedDir = null;
+
+    const cx = Math.floor(GRID / 2);
+    const cy = Math.floor(GRID / 2);
+
+    snake = [];
+    for (let i = 0; i < START_LEN; i++) snake.push({ x: cx - i, y: cy });
+
+    placeFood();
+    updateHUD();
+    render();
+  }
+
+  function placeFood() {
+    const occupied = new Set(snake.map(p => `${p.x},${p.y}`));
+    while (true) {
+      const x = Math.floor(Math.random() * GRID);
+      const y = Math.floor(Math.random() * GRID);
+      if (!occupied.has(`${x},${y}`)) { food = { x, y }; return; }
+    }
+  }
+
+  const OPP = { U:"D", D:"U", L:"R", R:"L" };
+  function queueDirection(d) {
+    if (d === OPP[dir]) return;
+    queuedDir = d;
+  }
+
+  function step() {
+    if (dead) return;
+
+    if (queuedDir && queuedDir !== OPP[dir]) dir = queuedDir;
+    queuedDir = null;
+
+    const head = snake[0];
+    let nx = head.x;
+    let ny = head.y;
+
+    if (dir === "U") ny--;
+    if (dir === "D") ny++;
+    if (dir === "L") nx--;
+    if (dir === "R") nx++;
+
+    if (wrapWalls.checked) {
+      nx = (nx + GRID) % GRID;
+      ny = (ny + GRID) % GRID;
+    } else {
+      if (nx < 0 || nx >= GRID || ny < 0 || ny >= GRID) { dead = true; return; }
     }
 
-    // Grab elements (REQUIRED)
-    const elScore  = must("score");
-    const elBest   = must("best");
-    const elSpeed  = must("speed");
-    const elStatus = must("status");
+    const willEat = (nx === food.x && ny === food.y);
+    const tail = snake[snake.length - 1];
 
-    const btnStart   = must("btnStart");
-    const btnPause   = must("btnPause");
-    const btnRestart = must("btnRestart");
-    const wrapWalls  = must("wrapWalls");
+    const hitsBody = snake.some((p, i) =>
+      p.x === nx && p.y === ny &&
+      !( !willEat && i === snake.length - 1 && p.x === tail.x && p.y === tail.y )
+    );
+    if (hitsBody) { dead = true; return; }
 
-    const overlay      = must("overlay");
-    const overlayTitle = must("overlayTitle");
-    const overlayText  = must("overlayText");
-    const overlayBtn   = must("overlayBtn");
+    snake.unshift({ x: nx, y: ny });
 
-    const canvas = must("board");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      alert("Snake error: couldn't get canvas 2D context.");
-      throw new Error("No 2D canvas context");
-    }
-
-    // Make canvas focusable (helps keyboard input after clicking buttons)
-    canvas.tabIndex = 0;
-    canvas.style.outline = "none";
-    canvas.addEventListener("pointerdown", () => canvas.focus());
-
-    // Storage
-    const BEST_KEY = "crispy_snake_best_js_v2";
-    let best = Number(localStorage.getItem(BEST_KEY) || "0");
-    elBest.textContent = String(best);
-
-    // Board settings
-    const GRID = 24;
-    const START_LEN = 3;
-    const BASE_TICK_MS = 120;
-
-    // Game state
-    let snake = [];
-    let dir = "R";
-    let queuedDir = null;
-    let food = { x: 0, y: 0 };
-    let score = 0;
-    let dead = false;
-
-    let running = false;
-    let paused = false;
-    let lastTick = 0;
-
-    // ------- Canvas sizing -------
-    function fitCanvasToCSS() {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.width * dpr);
-    }
-    window.addEventListener("resize", () => { fitCanvasToCSS(); render(); });
-    fitCanvasToCSS();
-
-    // ------- UI helpers -------
-    function setOverlay(show, title, text, btnText, enabled, onClick) {
-      if (show) overlay.classList.remove("hidden");
-      else overlay.classList.add("hidden");
-
-      overlayTitle.textContent = title ?? "Crispy Snake";
-      overlayText.textContent = text ?? "";
-      overlayBtn.textContent = btnText ?? "Start";
-      overlayBtn.disabled = !enabled;
-      if (onClick) overlayBtn.onclick = onClick;
-    }
-
-    function getSpeedMult() {
-      return 1 + Math.min(1.35, score * 0.05);
-    }
-
-    function tickInterval() {
-      return BASE_TICK_MS / getSpeedMult();
-    }
-
-    function updateHUD() {
-      elScore.textContent = String(score);
-      elSpeed.textContent = `${getSpeedMult().toFixed(2)}×`;
-
-      if (score > best) {
-        best = score;
-        localStorage.setItem(BEST_KEY, String(best));
-        elBest.textContent = String(best);
-      }
-    }
-
-    // ------- Game logic -------
-    function resetGame() {
-      score = 0;
-      dead = false;
-      dir = "R";
-      queuedDir = null;
-
-      const cx = Math.floor(GRID / 2);
-      const cy = Math.floor(GRID / 2);
-
-      snake = [];
-      for (let i = 0; i < START_LEN; i++) snake.push({ x: cx - i, y: cy });
-
+    if (willEat) {
+      score += 1;
       placeFood();
-      updateHUD();
-      render();
+    } else {
+      snake.pop();
     }
+  }
 
-    function placeFood() {
-      const occupied = new Set(snake.map(p => `${p.x},${p.y}`));
-      while (true) {
-        const x = Math.floor(Math.random() * GRID);
-        const y = Math.floor(Math.random() * GRID);
-        if (!occupied.has(`${x},${y}`)) {
-          food = { x, y };
-          return;
-        }
-      }
+  function roundRect(c, x, y, w, h, r) {
+    const rr = Math.max(0, Math.min(r, Math.min(w, h)/2));
+    c.beginPath();
+    c.moveTo(x + rr, y);
+    c.arcTo(x + w, y, x + w, y + h, rr);
+    c.arcTo(x + w, y + h, x, y + h, rr);
+    c.arcTo(x, y + h, x, y, rr);
+    c.arcTo(x, y, x + w, y, rr);
+    c.closePath();
+  }
+
+  function render() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const cell = Math.floor(Math.min(w, h) / GRID);
+    const bw = cell * GRID;
+    const bh = cell * GRID;
+    const ox = Math.floor((w - bw) / 2);
+    const oy = Math.floor((h - bh) / 2);
+
+    ctx.fillStyle = "#05070f";
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.save();
+    ctx.translate(ox, oy);
+
+    ctx.save();
+    ctx.globalAlpha = 0.10;
+    ctx.strokeStyle = "#b8c4ff";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= GRID; i++) {
+      ctx.beginPath(); ctx.moveTo(i * cell + 0.5, 0);  ctx.lineTo(i * cell + 0.5, bh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, i * cell + 0.5);  ctx.lineTo(bw, i * cell + 0.5); ctx.stroke();
     }
+    ctx.restore();
 
-    const OPP = { U:"D", D:"U", L:"R", R:"L" };
-    function queueDirection(d) {
-      if (d === OPP[dir]) return;
-      queuedDir = d;
-    }
+    const fx = food.x * cell, fy = food.y * cell;
+    const cx = fx + cell/2, cy = fy + cell/2;
+    const grd = ctx.createRadialGradient(cx, cy, cell*0.1, cx, cy, cell*0.95);
+    grd.addColorStop(0, "rgba(45,226,230,.95)");
+    grd.addColorStop(0.35, "rgba(124,92,255,.45)");
+    grd.addColorStop(1, "rgba(45,226,230,0)");
+    ctx.fillStyle = grd;
+    ctx.fillRect(fx - cell, fy - cell, cell*3, cell*3);
 
-    function step() {
-      if (dead) return;
+    ctx.fillStyle = "rgba(45,226,230,.95)";
+    roundRect(ctx, fx + cell*0.18, fy + cell*0.18, cell*0.64, cell*0.64, cell*0.22);
+    ctx.fill();
 
-      if (queuedDir && queuedDir !== OPP[dir]) dir = queuedDir;
-      queuedDir = null;
+    for (let i = snake.length - 1; i >= 0; i--) {
+      const p = snake[i];
+      const x = p.x * cell, y = p.y * cell;
 
-      const head = snake[0];
-      let nx = head.x;
-      let ny = head.y;
-
-      if (dir === "U") ny--;
-      if (dir === "D") ny++;
-      if (dir === "L") nx--;
-      if (dir === "R") nx++;
-
-      if (wrapWalls.checked) {
-        nx = (nx + GRID) % GRID;
-        ny = (ny + GRID) % GRID;
-      } else {
-        if (nx < 0 || nx >= GRID || ny < 0 || ny >= GRID) {
-          dead = true;
-          return;
-        }
-      }
-
-      const willEat = (nx === food.x && ny === food.y);
-
-      // Tail exception if not eating
-      const tail = snake[snake.length - 1];
-      const hitsBody = snake.some((p, i) =>
-        p.x === nx && p.y === ny &&
-        !( !willEat && i === snake.length - 1 && p.x === tail.x && p.y === tail.y )
-      );
-      if (hitsBody) {
-        dead = true;
-        return;
-      }
-
-      snake.unshift({ x: nx, y: ny });
-
-      if (willEat) {
-        score += 1;
-        placeFood();
-      } else {
-        snake.pop();
-      }
-    }
-
-    // ------- Rendering -------
-    function roundRect(c, x, y, w, h, r) {
-      const rr = Math.max(0, Math.min(r, Math.min(w, h)/2));
-      c.beginPath();
-      c.moveTo(x + rr, y);
-      c.arcTo(x + w, y, x + w, y + h, rr);
-      c.arcTo(x + w, y + h, x, y + h, rr);
-      c.arcTo(x, y + h, x, y, rr);
-      c.arcTo(x, y, x + w, y, rr);
-      c.closePath();
-    }
-
-    function render() {
-      const w = canvas.width, h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-
-      const cell = Math.floor(Math.min(w, h) / GRID);
-      const bw = cell * GRID;
-      const bh = cell * GRID;
-      const ox = Math.floor((w - bw) / 2);
-      const oy = Math.floor((h - bh) / 2);
-
-      ctx.fillStyle = "#05070f";
-      ctx.fillRect(0, 0, w, h);
+      const t = snake.length <= 1 ? 0 : i / (snake.length - 1);
+      const alpha = 0.35 + (1 - t) * 0.65;
 
       ctx.save();
-      ctx.translate(ox, oy);
+      ctx.globalAlpha = alpha;
 
-      // grid
-      ctx.save();
-      ctx.globalAlpha = 0.10;
-      ctx.strokeStyle = "#b8c4ff";
-      ctx.lineWidth = 1;
-      for (let i = 0; i <= GRID; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * cell + 0.5, 0);
-        ctx.lineTo(i * cell + 0.5, bh);
-        ctx.stroke();
+      if (i === 0) {
+        ctx.fillStyle = "rgba(78,252,122,.98)";
+        roundRect(ctx, x + cell*0.12, y + cell*0.12, cell*0.76, cell*0.76, cell*0.26);
+        ctx.fill();
 
-        ctx.beginPath();
-        ctx.moveTo(0, i * cell + 0.5);
-        ctx.lineTo(bw, i * cell + 0.5);
-        ctx.stroke();
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = "rgba(5,7,15,.85)";
+        const ex1 = x + cell*0.35, ex2 = x + cell*0.60;
+        const ey = y + cell*0.40;
+        ctx.beginPath(); ctx.arc(ex1, ey, cell*0.06, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(ex2, ey, cell*0.06, 0, Math.PI*2); ctx.fill();
+      } else {
+        ctx.fillStyle = "rgba(78,252,122,.85)";
+        roundRect(ctx, x + cell*0.16, y + cell*0.16, cell*0.68, cell*0.68, cell*0.22);
+        ctx.fill();
       }
-      ctx.restore();
-
-      // food glow + food
-      const fx = food.x * cell, fy = food.y * cell;
-      const cx = fx + cell/2, cy = fy + cell/2;
-      const grd = ctx.createRadialGradient(cx, cy, cell*0.1, cx, cy, cell*0.95);
-      grd.addColorStop(0, "rgba(45,226,230,.95)");
-      grd.addColorStop(0.35, "rgba(124,92,255,.45)");
-      grd.addColorStop(1, "rgba(45,226,230,0)");
-      ctx.fillStyle = grd;
-      ctx.fillRect(fx - cell, fy - cell, cell*3, cell*3);
-
-      ctx.fillStyle = "rgba(45,226,230,.95)";
-      roundRect(ctx, fx + cell*0.18, fy + cell*0.18, cell*0.64, cell*0.64, cell*0.22);
-      ctx.fill();
-
-      // snake
-      for (let i = snake.length - 1; i >= 0; i--) {
-        const p = snake[i];
-        const x = p.x * cell, y = p.y * cell;
-
-        const t = snake.length <= 1 ? 0 : i / (snake.length - 1);
-        const alpha = 0.35 + (1 - t) * 0.65;
-
-        ctx.save();
-        ctx.globalAlpha = alpha;
-
-        if (i === 0) {
-          ctx.fillStyle = "rgba(78,252,122,.98)";
-          roundRect(ctx, x + cell*0.12, y + cell*0.12, cell*0.76, cell*0.76, cell*0.26);
-          ctx.fill();
-        } else {
-          ctx.fillStyle = "rgba(78,252,122,.85)";
-          roundRect(ctx, x + cell*0.16, y + cell*0.16, cell*0.68, cell*0.68, cell*0.22);
-          ctx.fill();
-        }
-        ctx.restore();
-      }
-
-      // border
-      ctx.strokeStyle = "rgba(255,255,255,.16)";
-      ctx.lineWidth = 2;
-      roundRect(ctx, 1, 1, bw - 2, bh - 2, 18);
-      ctx.stroke();
-
       ctx.restore();
     }
 
-    // ------- Loop -------
-    function loop(t) {
-      requestAnimationFrame(loop);
-      if (!running || paused) return;
+    ctx.strokeStyle = "rgba(255,255,255,.16)";
+    ctx.lineWidth = 2;
+    roundRect(ctx, 1, 1, bw - 2, bh - 2, 18);
+    ctx.stroke();
 
-      const interval = tickInterval();
-      if (t - lastTick >= interval) {
-        step();
-        lastTick = t;
+    ctx.restore();
+  }
 
-        render();
-        updateHUD();
-
-        if (dead) {
-          running = false;
-          paused = false;
-
-          btnStart.disabled = false;
-          btnStart.textContent = "Start";
-          btnPause.textContent = "Pause";
-          btnPause.disabled = true;
-          elStatus.textContent = "Game Over";
-
-          setOverlay(true, "Game Over",
-            `Score: ${score}\nBest: ${best}\n\nPress Restart to play again.`,
-            "Restart", true, () => restart(true));
-        }
-      }
-    }
-
-    // ------- Controls -------
-    function start() {
-      canvas.focus();
-
-      if (dead) resetGame();
-
-      running = true;
-      paused = false;
-      btnStart.disabled = true;
-      btnStart.textContent = "Running";
-      btnPause.disabled = false;
-      btnPause.textContent = "Pause";
-      elStatus.textContent = "Running";
-
-      setOverlay(false);
-      lastTick = performance.now();
-    }
-
-    function togglePause() {
-      if (!running) return;
-
-      paused = !paused;
-      btnPause.textContent = paused ? "Resume" : "Pause";
-      elStatus.textContent = paused ? "Paused" : "Running";
-
-      if (paused) {
-        setOverlay(true, "Paused", "Press Space or Resume to continue.", "Resume", true, togglePause);
-      } else {
-        setOverlay(false);
-        lastTick = performance.now();
-      }
-    }
-
-    function restart(autostart) {
-      resetGame();
-      running = false;
-      paused = false;
-
-      btnStart.disabled = false;
-      btnStart.textContent = "Start";
-      btnPause.disabled = true;
-      btnPause.textContent = "Pause";
-      elStatus.textContent = "Ready";
-
-      setOverlay(true, "Crispy Snake", "Press Start to begin.", "Start", true, start);
-      if (autostart) start();
-    }
-
-    // ------- Input -------
-    function setupInput() {
-      document.addEventListener("keydown", (e) => {
-        const key = (e.key.length === 1) ? e.key.toLowerCase() : e.key.toLowerCase();
-
-        const isGameKey =
-          key === "arrowup" || key === "arrowdown" || key === "arrowleft" || key === "arrowright" ||
-          key === "w" || key === "a" || key === "s" || key === "d" ||
-          key === " " || e.code === "Space";
-
-        if (isGameKey) e.preventDefault();
-
-        if (key === " " || e.code === "Space") {
-          if (running) togglePause();
-          return;
-        }
-
-        const map = {
-          arrowup: "U", w: "U",
-          arrowdown: "D", s: "D",
-          arrowleft: "L", a: "L",
-          arrowright: "R", d: "R",
-        };
-
-        const d = map[key];
-        if (d) queueDirection(d);
-      }, { capture: true });
-    }
-
-    // Wire buttons
-    btnStart.onclick = start;
-    overlayBtn.onclick = start;
-    btnRestart.onclick = () => restart(false);
-    btnPause.onclick = togglePause;
-
-    // Init
-    setupInput();
-    resetGame();
-    setOverlay(true, "Crispy Snake", "Press Start to begin.", "Start", true, start);
-
+  function loop(t) {
     requestAnimationFrame(loop);
+    if (!running || paused) return;
 
-    console.log("✅ Crispy Snake: initialized successfully");
-  });
+    const interval = tickInterval();
+    if (t - lastTick >= interval) {
+      step();
+      lastTick = t;
+
+      render();
+      updateHUD();
+
+      if (dead) {
+        running = false;
+        paused = false;
+
+        btnStart.disabled = false;
+        btnStart.textContent = "Start";
+        btnPause.textContent = "Pause";
+        btnPause.disabled = true;
+        elStatus.textContent = "Game Over";
+
+        setOverlay(true, "Game Over",
+          `Score: ${score}\nBest: ${best}\n\nPress Restart to play again.`,
+          "Restart", true, () => restart(true));
+      }
+    }
+  }
+  requestAnimationFrame(loop);
+
+  function start() {
+    canvas.focus();
+    if (dead) resetGame();
+
+    running = true;
+    paused = false;
+    btnStart.disabled = true;
+    btnStart.textContent = "Running";
+    btnPause.disabled = false;
+    btnPause.textContent = "Pause";
+    elStatus.textContent = "Running";
+
+    setOverlay(false);
+    lastTick = performance.now();
+  }
+
+  function togglePause() {
+    if (!running) return;
+
+    paused = !paused;
+    btnPause.textContent = paused ? "Resume" : "Pause";
+    elStatus.textContent = paused ? "Paused" : "Running";
+
+    if (paused) setOverlay(true, "Paused", "Press Space or Resume to continue.", "Resume", true, togglePause);
+    else { setOverlay(false); lastTick = performance.now(); }
+  }
+
+  function restart(autostart) {
+    resetGame();
+    running = false;
+    paused = false;
+
+    btnStart.disabled = false;
+    btnStart.textContent = "Start";
+    btnPause.disabled = true;
+    btnPause.textContent = "Pause";
+    elStatus.textContent = "Ready";
+
+    setOverlay(true, "Crispy Snake", "Press Start to begin.", "Start", true, start);
+    if (autostart) start();
+  }
+
+  function setupInput() {
+    document.addEventListener("keydown", (e) => {
+      const key = (e.key.length === 1) ? e.key.toLowerCase() : e.key.toLowerCase();
+
+      const isGameKey =
+        key === "arrowup" || key === "arrowdown" || key === "arrowleft" || key === "arrowright" ||
+        key === "w" || key === "a" || key === "s" || key === "d" ||
+        key === " " || e.code === "Space";
+
+      if (isGameKey) e.preventDefault();
+
+      if (key === " " || e.code === "Space") { if (running) togglePause(); return; }
+
+      const map = {
+        arrowup: "U", w: "U",
+        arrowdown: "D", s: "D",
+        arrowleft: "L", a: "L",
+        arrowright: "R", d: "R",
+      };
+
+      const d = map[key];
+      if (d) queueDirection(d);
+    }, { capture: true });
+  }
+
+  btnStart.onclick = start;
+  overlayBtn.onclick = start;
+  btnRestart.onclick = () => restart(false);
+  btnPause.onclick = togglePause;
+
+  setupInput();
+  resetGame();
+  setOverlay(true, "Crispy Snake", "Press Start to begin.", "Start", true, start);
 })();
