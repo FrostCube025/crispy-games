@@ -1,130 +1,407 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Crispy Snake</title>
+(() => {
+  // If the script loads, you'll see this in DevTools Console
+  console.log("✅ Crispy Snake: JS file loaded");
 
-  <link rel="stylesheet" href="./snakegameCss.css" />
-
-  <style>
-    /* Back button */
-    .back-btn{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:10px 14px;
-      border-radius:14px;
-      background:rgba(255,255,255,.06);
-      border:1px solid rgba(255,255,255,.12);
-      color:inherit;
-      text-decoration:none;
-      font-weight:800;
-      font-size:13px;
-      transition:background .15s ease, transform .1s ease;
-      white-space:nowrap;
-    }
-    .back-btn:hover{
-      background:rgba(255,255,255,.10);
-      transform:translateY(-1px);
+  window.addEventListener("DOMContentLoaded", () => {
+    // Helper: required elements (if missing, we show a clear error)
+    function must(id) {
+      const el = document.getElementById(id);
+      if (!el) {
+        const msg = `Snake error: missing element id="${id}". Check snake/index.html has this id.`;
+        console.error(msg);
+        alert(msg);
+        throw new Error(msg);
+      }
+      return el;
     }
 
-    /* Make the top bar fit: brand + HUD + back button */
-    .top{
-      align-items:center;
+    // Grab elements (REQUIRED)
+    const elScore  = must("score");
+    const elBest   = must("best");
+    const elSpeed  = must("speed");
+    const elStatus = must("status");
+
+    const btnStart   = must("btnStart");
+    const btnPause   = must("btnPause");
+    const btnRestart = must("btnRestart");
+    const wrapWalls  = must("wrapWalls");
+
+    const overlay      = must("overlay");
+    const overlayTitle = must("overlayTitle");
+    const overlayText  = must("overlayText");
+    const overlayBtn   = must("overlayBtn");
+
+    const canvas = must("board");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      alert("Snake error: couldn't get canvas 2D context.");
+      throw new Error("No 2D canvas context");
     }
-    .top-right{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
+
+    // Make canvas focusable (helps keyboard input after clicking buttons)
+    canvas.tabIndex = 0;
+    canvas.style.outline = "none";
+    canvas.addEventListener("pointerdown", () => canvas.focus());
+
+    // Storage
+    const BEST_KEY = "crispy_snake_best_js_v2";
+    let best = Number(localStorage.getItem(BEST_KEY) || "0");
+    elBest.textContent = String(best);
+
+    // Board settings
+    const GRID = 24;
+    const START_LEN = 3;
+    const BASE_TICK_MS = 120;
+
+    // Game state
+    let snake = [];
+    let dir = "R";
+    let queuedDir = null;
+    let food = { x: 0, y: 0 };
+    let score = 0;
+    let dead = false;
+
+    let running = false;
+    let paused = false;
+    let lastTick = 0;
+
+    // ------- Canvas sizing -------
+    function fitCanvasToCSS() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.width * dpr);
     }
-  </style>
-</head>
+    window.addEventListener("resize", () => { fitCanvasToCSS(); render(); });
+    fitCanvasToCSS();
 
-<body>
-  <div class="shell">
-    <header class="top">
-      <div class="brand">
-        <div class="badge">🐍</div>
-        <div class="brand-text">
-          <div class="h1">Crispy Snake</div>
-          <div class="sub">Fast • Pure JavaScript • Canvas</div>
-        </div>
-      </div>
+    // ------- UI helpers -------
+    function setOverlay(show, title, text, btnText, enabled, onClick) {
+      if (show) overlay.classList.remove("hidden");
+      else overlay.classList.add("hidden");
 
-      <!-- RIGHT SIDE: HUD + Back button -->
-      <div class="top-right">
-        <div class="hud">
-          <div class="chip">
-            <div class="k">Score</div>
-            <div class="v" id="score">0</div>
-          </div>
-          <div class="chip">
-            <div class="k">Best</div>
-            <div class="v" id="best">0</div>
-          </div>
-          <div class="chip">
-            <div class="k">Speed</div>
-            <div class="v" id="speed">1.00×</div>
-          </div>
-        </div>
+      overlayTitle.textContent = title ?? "Crispy Snake";
+      overlayText.textContent = text ?? "";
+      overlayBtn.textContent = btnText ?? "Start";
+      overlayBtn.disabled = !enabled;
+      if (onClick) overlayBtn.onclick = onClick;
+    }
 
-        <a class="back-btn" href="/">← Back to games</a>
-      </div>
-    </header>
+    function getSpeedMult() {
+      return 1 + Math.min(1.35, score * 0.05);
+    }
 
-    <main class="main">
-      <section class="panel">
-        <div class="panel-top">
-          <div class="left">
-            <div class="status" id="status">Ready</div>
-            <div class="help">
-              Move:
-              <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>
-              or
-              <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
-              <span class="dot">•</span>
-              Pause: <kbd>Space</kbd>
-            </div>
-          </div>
+    function tickInterval() {
+      return BASE_TICK_MS / getSpeedMult();
+    }
 
-          <div class="right">
-            <button class="btn primary" id="btnStart">Start</button>
-            <button class="btn" id="btnPause" disabled>Pause</button>
-            <button class="btn" id="btnRestart">Restart</button>
+    function updateHUD() {
+      elScore.textContent = String(score);
+      elSpeed.textContent = `${getSpeedMult().toFixed(2)}×`;
 
-            <label class="toggle">
-              <input type="checkbox" id="wrapWalls" checked />
-              <span>Wrap walls</span>
-            </label>
-          </div>
-        </div>
+      if (score > best) {
+        best = score;
+        localStorage.setItem(BEST_KEY, String(best));
+        elBest.textContent = String(best);
+      }
+    }
 
-        <div class="canvas-wrap">
-          <canvas id="board" width="720" height="720"></canvas>
+    // ------- Game logic -------
+    function resetGame() {
+      score = 0;
+      dead = false;
+      dir = "R";
+      queuedDir = null;
 
-          <div class="overlay" id="overlay">
-            <div class="overlay-card">
-              <div class="overlay-title" id="overlayTitle">Crispy Snake</div>
-              <div class="overlay-text" id="overlayText">Press Start to begin.</div>
-              <div class="overlay-actions">
-                <button class="btn primary" id="overlayBtn">Start</button>
-              </div>
-            </div>
-          </div>
-        </div>
+      const cx = Math.floor(GRID / 2);
+      const cy = Math.floor(GRID / 2);
 
-        <div class="panel-bottom">
-          <span class="legend"><span class="pill good"></span> Snake</span>
-          <span class="legend"><span class="pill food"></span> Fruit</span>
-          <span class="legend"><span class="pill danger"></span> Crash = Game Over</span>
-        </div>
-      </section>
-    </main>
-  </div>
+      snake = [];
+      for (let i = 0; i < START_LEN; i++) snake.push({ x: cx - i, y: cy });
 
-  <script src="./snakegameJs.js"></script>
-</body>
-</html>
+      placeFood();
+      updateHUD();
+      render();
+    }
+
+    function placeFood() {
+      const occupied = new Set(snake.map(p => `${p.x},${p.y}`));
+      while (true) {
+        const x = Math.floor(Math.random() * GRID);
+        const y = Math.floor(Math.random() * GRID);
+        if (!occupied.has(`${x},${y}`)) {
+          food = { x, y };
+          return;
+        }
+      }
+    }
+
+    const OPP = { U:"D", D:"U", L:"R", R:"L" };
+    function queueDirection(d) {
+      if (d === OPP[dir]) return;
+      queuedDir = d;
+    }
+
+    function step() {
+      if (dead) return;
+
+      if (queuedDir && queuedDir !== OPP[dir]) dir = queuedDir;
+      queuedDir = null;
+
+      const head = snake[0];
+      let nx = head.x;
+      let ny = head.y;
+
+      if (dir === "U") ny--;
+      if (dir === "D") ny++;
+      if (dir === "L") nx--;
+      if (dir === "R") nx++;
+
+      if (wrapWalls.checked) {
+        nx = (nx + GRID) % GRID;
+        ny = (ny + GRID) % GRID;
+      } else {
+        if (nx < 0 || nx >= GRID || ny < 0 || ny >= GRID) {
+          dead = true;
+          return;
+        }
+      }
+
+      const willEat = (nx === food.x && ny === food.y);
+
+      // Tail exception if not eating
+      const tail = snake[snake.length - 1];
+      const hitsBody = snake.some((p, i) =>
+        p.x === nx && p.y === ny &&
+        !( !willEat && i === snake.length - 1 && p.x === tail.x && p.y === tail.y )
+      );
+      if (hitsBody) {
+        dead = true;
+        return;
+      }
+
+      snake.unshift({ x: nx, y: ny });
+
+      if (willEat) {
+        score += 1;
+        placeFood();
+      } else {
+        snake.pop();
+      }
+    }
+
+    // ------- Rendering -------
+    function roundRect(c, x, y, w, h, r) {
+      const rr = Math.max(0, Math.min(r, Math.min(w, h)/2));
+      c.beginPath();
+      c.moveTo(x + rr, y);
+      c.arcTo(x + w, y, x + w, y + h, rr);
+      c.arcTo(x + w, y + h, x, y + h, rr);
+      c.arcTo(x, y + h, x, y, rr);
+      c.arcTo(x, y, x + w, y, rr);
+      c.closePath();
+    }
+
+    function render() {
+      const w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const cell = Math.floor(Math.min(w, h) / GRID);
+      const bw = cell * GRID;
+      const bh = cell * GRID;
+      const ox = Math.floor((w - bw) / 2);
+      const oy = Math.floor((h - bh) / 2);
+
+      ctx.fillStyle = "#05070f";
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.save();
+      ctx.translate(ox, oy);
+
+      // grid
+      ctx.save();
+      ctx.globalAlpha = 0.10;
+      ctx.strokeStyle = "#b8c4ff";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= GRID; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * cell + 0.5, 0);
+        ctx.lineTo(i * cell + 0.5, bh);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, i * cell + 0.5);
+        ctx.lineTo(bw, i * cell + 0.5);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // food glow + food
+      const fx = food.x * cell, fy = food.y * cell;
+      const cx = fx + cell/2, cy = fy + cell/2;
+      const grd = ctx.createRadialGradient(cx, cy, cell*0.1, cx, cy, cell*0.95);
+      grd.addColorStop(0, "rgba(45,226,230,.95)");
+      grd.addColorStop(0.35, "rgba(124,92,255,.45)");
+      grd.addColorStop(1, "rgba(45,226,230,0)");
+      ctx.fillStyle = grd;
+      ctx.fillRect(fx - cell, fy - cell, cell*3, cell*3);
+
+      ctx.fillStyle = "rgba(45,226,230,.95)";
+      roundRect(ctx, fx + cell*0.18, fy + cell*0.18, cell*0.64, cell*0.64, cell*0.22);
+      ctx.fill();
+
+      // snake
+      for (let i = snake.length - 1; i >= 0; i--) {
+        const p = snake[i];
+        const x = p.x * cell, y = p.y * cell;
+
+        const t = snake.length <= 1 ? 0 : i / (snake.length - 1);
+        const alpha = 0.35 + (1 - t) * 0.65;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+
+        if (i === 0) {
+          ctx.fillStyle = "rgba(78,252,122,.98)";
+          roundRect(ctx, x + cell*0.12, y + cell*0.12, cell*0.76, cell*0.76, cell*0.26);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = "rgba(78,252,122,.85)";
+          roundRect(ctx, x + cell*0.16, y + cell*0.16, cell*0.68, cell*0.68, cell*0.22);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // border
+      ctx.strokeStyle = "rgba(255,255,255,.16)";
+      ctx.lineWidth = 2;
+      roundRect(ctx, 1, 1, bw - 2, bh - 2, 18);
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // ------- Loop -------
+    function loop(t) {
+      requestAnimationFrame(loop);
+      if (!running || paused) return;
+
+      const interval = tickInterval();
+      if (t - lastTick >= interval) {
+        step();
+        lastTick = t;
+
+        render();
+        updateHUD();
+
+        if (dead) {
+          running = false;
+          paused = false;
+
+          btnStart.disabled = false;
+          btnStart.textContent = "Start";
+          btnPause.textContent = "Pause";
+          btnPause.disabled = true;
+          elStatus.textContent = "Game Over";
+
+          setOverlay(true, "Game Over",
+            `Score: ${score}\nBest: ${best}\n\nPress Restart to play again.`,
+            "Restart", true, () => restart(true));
+        }
+      }
+    }
+
+    // ------- Controls -------
+    function start() {
+      canvas.focus();
+
+      if (dead) resetGame();
+
+      running = true;
+      paused = false;
+      btnStart.disabled = true;
+      btnStart.textContent = "Running";
+      btnPause.disabled = false;
+      btnPause.textContent = "Pause";
+      elStatus.textContent = "Running";
+
+      setOverlay(false);
+      lastTick = performance.now();
+    }
+
+    function togglePause() {
+      if (!running) return;
+
+      paused = !paused;
+      btnPause.textContent = paused ? "Resume" : "Pause";
+      elStatus.textContent = paused ? "Paused" : "Running";
+
+      if (paused) {
+        setOverlay(true, "Paused", "Press Space or Resume to continue.", "Resume", true, togglePause);
+      } else {
+        setOverlay(false);
+        lastTick = performance.now();
+      }
+    }
+
+    function restart(autostart) {
+      resetGame();
+      running = false;
+      paused = false;
+
+      btnStart.disabled = false;
+      btnStart.textContent = "Start";
+      btnPause.disabled = true;
+      btnPause.textContent = "Pause";
+      elStatus.textContent = "Ready";
+
+      setOverlay(true, "Crispy Snake", "Press Start to begin.", "Start", true, start);
+      if (autostart) start();
+    }
+
+    // ------- Input -------
+    function setupInput() {
+      document.addEventListener("keydown", (e) => {
+        const key = (e.key.length === 1) ? e.key.toLowerCase() : e.key.toLowerCase();
+
+        const isGameKey =
+          key === "arrowup" || key === "arrowdown" || key === "arrowleft" || key === "arrowright" ||
+          key === "w" || key === "a" || key === "s" || key === "d" ||
+          key === " " || e.code === "Space";
+
+        if (isGameKey) e.preventDefault();
+
+        if (key === " " || e.code === "Space") {
+          if (running) togglePause();
+          return;
+        }
+
+        const map = {
+          arrowup: "U", w: "U",
+          arrowdown: "D", s: "D",
+          arrowleft: "L", a: "L",
+          arrowright: "R", d: "R",
+        };
+
+        const d = map[key];
+        if (d) queueDirection(d);
+      }, { capture: true });
+    }
+
+    // Wire buttons
+    btnStart.onclick = start;
+    overlayBtn.onclick = start;
+    btnRestart.onclick = () => restart(false);
+    btnPause.onclick = togglePause;
+
+    // Init
+    setupInput();
+    resetGame();
+    setOverlay(true, "Crispy Snake", "Press Start to begin.", "Start", true, start);
+
+    requestAnimationFrame(loop);
+
+    console.log("✅ Crispy Snake: initialized successfully");
+  });
+})();
