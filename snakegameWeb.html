@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Snake (Python + JS Canvas)</title>
+
+  <link rel="stylesheet" href="./snakegameCss.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">S</div>
+        <div>
+          <div class="title">Snake</div>
+          <div class="subtitle">Python logic • Canvas render • Netlify-friendly</div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="pill">
+          <span class="label">Score</span>
+          <span id="score" class="value">0</span>
+        </div>
+        <div class="pill">
+          <span class="label">Best</span>
+          <span id="best" class="value">0</span>
+        </div>
+        <div class="pill">
+          <span class="label">Speed</span>
+          <span id="speed" class="value">1.0×</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="card game-card">
+        <div class="card-header">
+          <div class="left">
+            <div class="status" id="status">Loading Python runtime…</div>
+            <div class="hint">Use <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
+          </div>
+
+          <div class="right controls">
+            <button id="btnStart" class="btn primary" disabled>Start</button>
+            <button id="btnPause" class="btn" disabled>Pause</button>
+            <button id="btnRestart" class="btn" disabled>Restart</button>
+            <label class="toggle">
+              <input type="checkbox" id="wrapWalls" checked />
+              <span>Wrap walls</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="canvas-wrap">
+          <canvas id="board" width="720" height="720" aria-label="Snake game board"></canvas>
+
+          <div class="overlay" id="overlay">
+            <div class="overlay-inner">
+              <div class="overlay-title" id="overlayTitle">Snake</div>
+              <div class="overlay-text" id="overlayText">Loading…</div>
+              <div class="overlay-actions">
+                <button id="overlayBtn" class="btn primary" disabled>Start</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="card-footer">
+          <div class="tips">
+            <span class="dot"></span> Eat the glowing fruit
+            <span class="sep">•</span>
+            <span class="dot warn"></span> Don’t bite yourself
+            <span class="sep">•</span>
+            <span class="dot chill"></span> <kbd>Space</kbd> toggles pause
+          </div>
+        </footer>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span>Built with HTML/CSS/JS + Pyodide (Python in the browser).</span>
+    </footer>
+  </div>
+
+  <!-- Pyodide (Python in WebAssembly) -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+  <script src="./snakegameJs.js"></script>
+</body>
+</html>
