@@ -2,50 +2,55 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Snake (Python + JS Canvas)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crispy Snake (Python + JS)</title>
 
   <link rel="stylesheet" href="./snakegameCss.css" />
 </head>
 <body>
-  <div class="page">
-    <header class="topbar">
+  <div class="shell">
+    <header class="top">
       <div class="brand">
-        <div class="logo">S</div>
-        <div>
-          <div class="title">Snake</div>
-          <div class="subtitle">Python logic • Canvas render • Netlify-friendly</div>
+        <div class="badge">🐍</div>
+        <div class="brand-text">
+          <div class="h1">Crispy Snake</div>
+          <div class="sub">Python logic (Pyodide) • Canvas rendering • Netlify-friendly</div>
         </div>
       </div>
 
-      <div class="stats">
-        <div class="pill">
-          <span class="label">Score</span>
-          <span id="score" class="value">0</span>
+      <div class="hud">
+        <div class="chip">
+          <div class="k">Score</div>
+          <div class="v" id="score">0</div>
         </div>
-        <div class="pill">
-          <span class="label">Best</span>
-          <span id="best" class="value">0</span>
+        <div class="chip">
+          <div class="k">Best</div>
+          <div class="v" id="best">0</div>
         </div>
-        <div class="pill">
-          <span class="label">Speed</span>
-          <span id="speed" class="value">1.0×</span>
+        <div class="chip">
+          <div class="k">Speed</div>
+          <div class="v" id="speed">1.00×</div>
         </div>
       </div>
     </header>
 
     <main class="main">
-      <section class="card game-card">
-        <div class="card-header">
+      <section class="panel">
+        <div class="panel-top">
           <div class="left">
             <div class="status" id="status">Loading Python runtime…</div>
-            <div class="hint">Use <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div>
+            <div class="help">
+              Move: <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+              <span class="dot">•</span>
+              Pause: <kbd>Space</kbd>
+            </div>
           </div>
 
-          <div class="right controls">
-            <button id="btnStart" class="btn primary" disabled>Start</button>
-            <button id="btnPause" class="btn" disabled>Pause</button>
-            <button id="btnRestart" class="btn" disabled>Restart</button>
+          <div class="right">
+            <button class="btn primary" id="btnStart" disabled>Start</button>
+            <button class="btn" id="btnPause" disabled>Pause</button>
+            <button class="btn" id="btnRestart" disabled>Restart</button>
+
             <label class="toggle">
               <input type="checkbox" id="wrapWalls" checked />
               <span>Wrap walls</span>
@@ -54,38 +59,34 @@
         </div>
 
         <div class="canvas-wrap">
-          <canvas id="board" width="720" height="720" aria-label="Snake game board"></canvas>
+          <canvas id="board" width="720" height="720"></canvas>
 
           <div class="overlay" id="overlay">
-            <div class="overlay-inner">
-              <div class="overlay-title" id="overlayTitle">Snake</div>
+            <div class="overlay-card">
+              <div class="overlay-title" id="overlayTitle">Crispy Snake</div>
               <div class="overlay-text" id="overlayText">Loading…</div>
               <div class="overlay-actions">
-                <button id="overlayBtn" class="btn primary" disabled>Start</button>
+                <button class="btn primary" id="overlayBtn" disabled>Start</button>
               </div>
             </div>
           </div>
         </div>
 
-        <footer class="card-footer">
-          <div class="tips">
-            <span class="dot"></span> Eat the glowing fruit
-            <span class="sep">•</span>
-            <span class="dot warn"></span> Don’t bite yourself
-            <span class="sep">•</span>
-            <span class="dot chill"></span> <kbd>Space</kbd> toggles pause
-          </div>
-        </footer>
+        <div class="panel-bottom">
+          <span class="legend"><span class="pill good"></span> Snake</span>
+          <span class="legend"><span class="pill food"></span> Fruit</span>
+          <span class="legend"><span class="pill danger"></span> Crash = Game Over</span>
+        </div>
       </section>
     </main>
 
-    <footer class="footer">
-      <span>Built with HTML/CSS/JS + Pyodide (Python in the browser).</span>
+    <footer class="foot">
+      <span>Tip: if your homepage is blank, rename <code>snakegameWeb.html</code> → <code>index.html</code>.</span>
     </footer>
   </div>
 
-  <!-- Pyodide (Python in WebAssembly) -->
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+  <!-- Pyodide loader -->
+  <script src="https://cdn.jsdelivr.net/npm/pyodide@0.26.2/pyodide.js"></script>
   <script src="./snakegameJs.js"></script>
 </body>
 </html>
