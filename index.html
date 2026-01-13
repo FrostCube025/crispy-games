@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Crispy Games</title>
-
   <style>
     body{
       margin:0;
@@ -13,23 +12,9 @@
       color:#eef2ff;
       min-height:100vh;
     }
-
-    header{
-      padding:32px 24px 16px;
-      text-align:center;
-    }
-
-    h1{
-      margin:0;
-      font-size:32px;
-      letter-spacing:.5px;
-    }
-
-    p{
-      margin-top:8px;
-      color:rgba(238,242,255,.75);
-    }
-
+    header{ padding:32px 24px 16px; text-align:center; }
+    h1{ margin:0; font-size:32px; letter-spacing:.5px; }
+    p{ margin-top:8px; color:rgba(238,242,255,.75); }
     .grid{
       max-width:1000px;
       margin:32px auto;
@@ -38,8 +23,7 @@
       gap:20px;
       grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
     }
-
-    .card{
+    a.card{
       display:flex;
       flex-direction:column;
       justify-content:space-between;
@@ -51,84 +35,30 @@
       color:inherit;
       transition:transform .15s ease, background .15s ease;
     }
-
-    .card:hover{
-      background:rgba(255,255,255,.1);
-      transform:translateY(-4px);
-    }
-
-    .emoji{
-      font-size:36px;
-    }
-
-    .title{
-      margin-top:12px;
-      font-size:20px;
-      font-weight:800;
-    }
-
-    .desc{
-      margin-top:6px;
-      font-size:14px;
-      color:rgba(238,242,255,.7);
-      line-height:1.4;
-    }
-
-    footer{
-      text-align:center;
-      padding-bottom:20px;
-      font-size:12px;
-      color:rgba(238,242,255,.55);
-    }
+    a.card:hover{ background:rgba(255,255,255,.1); transform:translateY(-4px); }
+    .emoji{ font-size:36px; }
+    .title{ margin-top:12px; font-size:20px; font-weight:800; }
+    .desc{ margin-top:6px; font-size:14px; color:rgba(238,242,255,.7); line-height:1.4; }
+    footer{ text-align:center; padding-bottom:20px; font-size:12px; color:rgba(238,242,255,.55); }
   </style>
 </head>
 <body>
+  <header>
+    <h1>🎮 Crispy Games</h1>
+    <p>One game for now — more coming soon.</p>
+  </header>
 
-<header>
-  <h1>🎮 Crispy Games</h1>
-  <p>A collection of fast, clean browser games</p>
-  <p>Made by FrostCube025</p>
-</header>
-
-<section class="grid">
-  <a class="card" href="/snake/">
-    <div>
-      <div class="emoji">🐍</div>
-      <div class="title">Snake</div>
-      <div class="desc">
-        Classic Snake with smooth controls, speed ramp,
-        wrap walls and high score.
+  <section class="grid">
+    <!-- IMPORTANT: relative link for GitHub Pages -->
+    <a class="card" href="./snake/">
+      <div>
+        <div class="emoji">🐍</div>
+        <div class="title">Snake</div>
+        <div class="desc">Classic Snake with smooth controls, wrap walls toggle, speed ramp, and best score.</div>
       </div>
-    </div>
-  </a>
+    </a>
+  </section>
 
-  <a class="card" href="/pong/">
-    <div>
-      <div class="emoji">🏓</div>
-      <div class="title">Pong</div>
-      <div class="desc">
-        Retro pong duel.<br>
-        <em>Coming soon</em>
-      </div>
-    </div>
-  </a>
-
-  <a class="card" href="/tetris/">
-    <div>
-      <div class="emoji">🧱</div>
-      <div class="title">Tetris</div>
-      <div class="desc">
-        Falling blocks puzzle.<br>
-        <em>Coming soon</em>
-      </div>
-    </div>
-  </a>
-</section>
-
-<footer>
-  © Crispy Games
-</footer>
-
+  <footer>© Crispy Games</footer>
 </body>
 </html>
-
