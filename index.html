@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Crispy Snake (Python + JS)</title>
+  <title>Crispy Snake</title>
 
   <link rel="stylesheet" href="./snakegameCss.css" />
 </head>
@@ -14,7 +14,7 @@
         <div class="badge">🐍</div>
         <div class="brand-text">
           <div class="h1">Crispy Snake</div>
-          <div class="sub">Python logic (Pyodide) • Canvas rendering • Netlify-friendly</div>
+          <div class="sub">Fast mode • Pure JavaScript • Canvas</div>
         </div>
       </div>
 
@@ -38,7 +38,7 @@
       <section class="panel">
         <div class="panel-top">
           <div class="left">
-            <div class="status" id="status">Loading Python runtime…</div>
+            <div class="status" id="status">Ready</div>
             <div class="help">
               Move: <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
               <span class="dot">•</span>
@@ -47,9 +47,9 @@
           </div>
 
           <div class="right">
-            <button class="btn primary" id="btnStart" disabled>Start</button>
+            <button class="btn primary" id="btnStart">Start</button>
             <button class="btn" id="btnPause" disabled>Pause</button>
-            <button class="btn" id="btnRestart" disabled>Restart</button>
+            <button class="btn" id="btnRestart">Restart</button>
 
             <label class="toggle">
               <input type="checkbox" id="wrapWalls" checked />
@@ -64,9 +64,10 @@
           <div class="overlay" id="overlay">
             <div class="overlay-card">
               <div class="overlay-title" id="overlayTitle">Crispy Snake</div>
-              <div class="overlay-text" id="overlayText">Loading…</div>
+              <div class="overlay-text" id="overlayText">Press Start to begin.</div>
+
               <div class="overlay-actions">
-                <button class="btn primary" id="overlayBtn" disabled>Start</button>
+                <button class="btn primary" id="overlayBtn">Start</button>
               </div>
             </div>
           </div>
@@ -81,12 +82,10 @@
     </main>
 
     <footer class="foot">
-      <span>Tip: if your homepage is blank, rename <code>snakegameWeb.html</code> → <code>index.html</code>.</span>
+      <span>Ultra-fast load: no Python runtime, no big downloads.</span>
     </footer>
   </div>
 
-  <!-- Pyodide loader -->
-  <script src="https://cdn.jsdelivr.net/npm/pyodide@0.26.2/pyodide.js"></script>
   <script src="./snakegameJs.js"></script>
 </body>
 </html>
