@@ -232,9 +232,3 @@ kbd{
 .pill.good{ background: var(--good); box-shadow: 0 0 18px rgba(78,252,122,.35); }
 .pill.food{ background: var(--accent2); box-shadow: 0 0 18px rgba(45,226,230,.35); }
 .pill.danger{ background: var(--danger); box-shadow: 0 0 18px rgba(255,77,109,.35); }
-
-.foot{
-  text-align:center;
-  font-size: 12px;
-  color: rgba(238,242,255,.62);
-}
