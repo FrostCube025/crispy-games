@@ -8,26 +8,18 @@
   <link rel="stylesheet" href="./snakegameCss.css" />
 
   <style>
-    .top { align-items:center; }
+    .top{ align-items:center; }
     .top-right{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
+      display:flex; align-items:center; gap:12px;
+      flex-wrap:wrap; justify-content:flex-end;
     }
     .back-btn{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:10px 14px;
-      border-radius:14px;
+      display:inline-flex; align-items:center; gap:8px;
+      padding:10px 14px; border-radius:14px;
       background:rgba(255,255,255,.06);
       border:1px solid rgba(255,255,255,.12);
-      color:inherit;
-      text-decoration:none;
-      font-weight:800;
-      font-size:13px;
+      color:inherit; text-decoration:none;
+      font-weight:800; font-size:13px;
       white-space:nowrap;
       transition:background .15s ease, transform .1s ease;
     }
@@ -40,8 +32,6 @@
 
 <body>
   <div class="shell">
-
-    <!-- HEADER -->
     <header class="top">
       <div class="brand">
         <div class="badge">🐍</div>
@@ -52,7 +42,6 @@
       </div>
 
       <div class="top-right">
-        <!-- REQUIRED HUD IDS -->
         <div class="hud">
           <div class="chip">
             <div class="k">Score</div>
@@ -68,16 +57,15 @@
           </div>
         </div>
 
-        <a class="back-btn" href="/">← Back to games</a>
+        <!-- IMPORTANT: relative link back for GitHub Pages -->
+        <a class="back-btn" href="../">← Back to games</a>
       </div>
     </header>
 
-    <!-- GAME -->
     <main class="main">
       <section class="panel">
         <div class="panel-top">
           <div class="left">
-            <!-- REQUIRED STATUS ID -->
             <div class="status" id="status">Ready</div>
             <div class="help">
               Move:
@@ -90,12 +78,10 @@
           </div>
 
           <div class="right">
-            <!-- REQUIRED BUTTON IDS -->
             <button class="btn primary" id="btnStart">Start</button>
             <button class="btn" id="btnPause" disabled>Pause</button>
             <button class="btn" id="btnRestart">Restart</button>
 
-            <!-- REQUIRED TOGGLE ID -->
             <label class="toggle">
               <input type="checkbox" id="wrapWalls" checked />
               <span>Wrap walls</span>
@@ -104,10 +90,8 @@
         </div>
 
         <div class="canvas-wrap">
-          <!-- REQUIRED CANVAS ID -->
           <canvas id="board" width="720" height="720"></canvas>
 
-          <!-- REQUIRED OVERLAY IDS -->
           <div class="overlay" id="overlay">
             <div class="overlay-card">
               <div class="overlay-title" id="overlayTitle">Crispy Snake</div>
@@ -126,7 +110,6 @@
         </div>
       </section>
     </main>
-
   </div>
 
   <script src="./snakegameJs.js"></script>
