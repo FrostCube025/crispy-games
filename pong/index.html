@@ -1,1 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crispy Pong</title>
+  <link rel="stylesheet" href="./pong.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <div class="badge">🏓</div>
+        <div>
+          <div class="h1">Crispy Pong</div>
+          <div class="sub">You vs AI • W/S or ↑/↓ • Space pause</div>
+        </div>
+      </div>
+
+      <div class="rightTop">
+        <div class="hud">
+          <div class="chip"><div class="k">You</div><div class="v" id="scoreL">0</div></div>
+          <div class="chip"><div class="k">AI</div><div class="v" id="scoreR">0</div></div>
+        </div>
+        <a class="back" href="../">← Back</a>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="panelTop">
+        <div class="status" id="status">Ready</div>
+        <div class="buttons">
+          <button class="btn primary" id="btnStart">Start</button>
+          <button class="btn" id="btnPause" disabled>Pause</button>
+          <button class="btn" id="btnRestart">Restart</button>
+        </div>
+      </div>
+
+      <div class="wrap">
+        <canvas id="board" width="900" height="520"></canvas>
+        <div class="overlay" id="overlay">
+          <div class="overlayCard">
+            <div class="overlayTitle" id="overlayTitle">Crispy Pong</div>
+            <div class="overlayText" id="overlayText">Press Start.</div>
+            <button class="btn primary" id="overlayBtn">Start</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panelBottom">First to 7 wins. Tip: hit paddle edges for angle.</div>
+    </section>
+  </div>
+
+  <script src="./pong.js"></script>
+</body>
+</html>
 
