@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crispy Tetris</title>
+  <link rel="stylesheet" href="./tetris.css" />
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <div class="badge">🧱</div>
+        <div>
+          <div class="h1">Crispy Tetris</div>
+          <div class="sub">←/→ move • ↑ rotate • ↓ soft • Space hard • P pause</div>
+        </div>
+      </div>
+
+      <div class="rightTop">
+        <div class="hud">
+          <div class="chip"><div class="k">Score</div><div class="v" id="score">0</div></div>
+          <div class="chip"><div class="k">Lines</div><div class="v" id="lines">0</div></div>
+          <div class="chip"><div class="k">Level</div><div class="v" id="level">1</div></div>
+        </div>
+        <a class="back" href="../">← Back</a>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="panelTop">
+        <div class="status" id="status">Ready</div>
+        <div class="buttons">
+          <button class="btn primary" id="btnStart">Start</button>
+          <button class="btn" id="btnPause" disabled>Pause</button>
+          <button class="btn" id="btnRestart">Restart</button>
+        </div>
+      </div>
+
+      <div class="wrap">
+        <canvas id="board" width="360" height="720"></canvas>
+        <div class="overlay" id="overlay">
+          <div class="overlayCard">
+            <div class="overlayTitle" id="overlayTitle">Crispy Tetris</div>
+            <div class="overlayText" id="overlayText">Press Start.</div>
+            <button class="btn primary" id="overlayBtn">Start</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panelBottom">10×20. Clear lines to level up (faster fall).</div>
+    </section>
+  </div>
+
+  <script src="./tetris.js"></script>
+</body>
+</html>
